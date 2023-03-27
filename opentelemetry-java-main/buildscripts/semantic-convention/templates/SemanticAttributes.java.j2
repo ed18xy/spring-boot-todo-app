@@ -1,0 +1,291 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+
+{%- macro to_java_return_type(type) -%}
+  {%- if type == "string" -%}
+    String
+  {%- elif type == "string[]" -%}
+    List<String>
+  {%- elif type == "boolean" -%}
+    boolean
+  {%- elif type == "int" -%}
+    long
+  {%- elif type == "double" -%}
+    double
+  {%- else -%}
+    {{type}}
+  {%- endif -%}
+{%- endmacro %}
+{%- macro to_java_key_type(type) -%}
+  {%- if type == "string" -%}
+    stringKey
+  {%- elif type == "string[]" -%}
+    stringArrayKey
+  {%- elif type == "boolean" -%}
+    booleanKey
+  {%- elif type == "int" -%}
+    longKey
+  {%- elif type == "double" -%}
+    doubleKey
+  {%- else -%}
+    {{lowerFirst(type)}}Key
+  {%- endif -%}
+{%- endmacro %}
+{%- macro print_value(type, value) -%}
+  {{ "\"" if type == "String"}}{{value}}{{ "\"" if type == "String"}}
+{%- endmacro %}
+{%- macro upFirst(text) -%}
+  {{ text[0]|upper}}{{text[1:] }}
+{%- endmacro %}
+{%- macro lowerFirst(text) -%}
+  {{ text[0]|lower}}{{text[1:] }}
+{%- endmacro %}
+
+package {{pkg | trim}};
+
+import static io.opentelemetry.api.common.AttributeKey.booleanKey;
+import static io.opentelemetry.api.common.AttributeKey.doubleKey;
+import static io.opentelemetry.api.common.AttributeKey.longKey;
+import static io.opentelemetry.api.common.AttributeKey.stringKey;
+import static io.opentelemetry.api.common.AttributeKey.stringArrayKey;
+
+import io.opentelemetry.api.common.AttributeKey;
+import java.util.List;
+
+// DO NOT EDIT, this is an Auto-generated file from buildscripts/semantic-convention{{template}}
+@SuppressWarnings("unused")
+public final class {{class}} {
+  /**
+   * The URL of the OpenTelemetry schema for these keys and values.
+   */
+  public static final String SCHEMA_URL = "{{schemaUrl}}";
+  {%- for attribute in attributes if attribute.is_local and not attribute.ref %}
+
+  /**
+  * {{attribute.brief | render_markdown(code="{{@code {0}}}", paragraph="{0}")}}
+    {%- if attribute.note %}
+  *
+  * <p>Notes:
+    <ul> {{attribute.note | render_markdown(code="{{@code {0}}}", paragraph="<li>{0}</li>", list="{0}")}} </ul>
+    {%- endif %}
+    {%- if (attribute.stability | string())  == "StabilityLevel.DEPRECATED" %}
+  *
+  * @deprecated {{attribute.brief | to_doc_brief}}.
+    {%- endif %}
+  */
+    {%- if (attribute.stability | string()) == "StabilityLevel.DEPRECATED"  %}
+  @Deprecated
+    {%- endif %}
+  public static final AttributeKey<{{upFirst(to_java_return_type(attribute.attr_type | string))}}> {{attribute.fqn | to_const_name}} = {{to_java_key_type(attribute.attr_type | string)}}("{{attribute.fqn}}");
+  {%- endfor %}
+
+  // Enum definitions
+  {%- for attribute in attributes if attribute.is_local and not attribute.ref %}
+  {%- if attribute.is_enum %}
+  {%- set class_name = attribute.fqn | to_camelcase(True) ~ "Values" %}
+  {%- set type = to_java_return_type(attribute.attr_type.enum_type) %}
+  public static final class {{class_name}} {
+    {%- for member in attribute.attr_type.members %}
+      /** {% filter escape %}{{member.brief | to_doc_brief}}.{% endfilter %} */
+      public static final {{ type }} {{ member.member_id | to_const_name }} = {{ print_value(type, member.value) }};
+    {%- endfor %}
+
+    {%- if class_name == "NetTransportValues" %}
+    /** @deprecated This item has been removed as of 1.13.0 of the semantic conventions. */
+    @Deprecated
+    public static final String IP = "ip";
+    /** @deprecated This item has been removed as of 1.13.0 of the semantic conventions. */
+    @Deprecated
+    public static final String UNIX = "unix";
+    {%- endif %}
+
+      private {{ class_name }}() {}
+  }
+
+  {% endif %}
+  {%- endfor %}
+
+  {%- if class == "SemanticAttributes" %}
+  // Manually defined and not YET in the YAML
+  /**
+   * The name of an event describing an exception.
+   *
+   * <p>Typically an event with that name should not be manually created. Instead {@link
+   * io.opentelemetry.api.trace.Span#recordException(Throwable)} should be used.
+   */
+  public static final String EXCEPTION_EVENT_NAME = "exception";
+
+  /**
+   * The name of the keyspace being accessed.
+   *
+   * @deprecated this item has been removed as of 1.8.0 of the semantic conventions. Please use {@link SemanticAttributes#DB_NAME} instead.
+   */
+  @Deprecated
+  public static final AttributeKey<String> DB_CASSANDRA_KEYSPACE =
+      stringKey("db.cassandra.keyspace");
+
+  /**
+   * The <a href="https://hbase.apache.org/book.html#_namespace">HBase namespace</a> being accessed.
+   *
+   * @deprecated this item has been removed as of 1.8.0 of the semantic conventions. Please use {@link SemanticAttributes#DB_NAME} instead.
+   */
+  @Deprecated
+  public static final AttributeKey<String> DB_HBASE_NAMESPACE = stringKey("db.hbase.namespace");
+
+  /**
+   * The size of the uncompressed request payload body after transport decoding. Not set if
+   * transport encoding not used.
+   *
+   * @deprecated  this item has been removed as of 1.13.0 of the semantic conventions. Please use {@link SemanticAttributes#HTTP_REQUEST_CONTENT_LENGTH} instead.
+   */
+  @Deprecated
+  public static final AttributeKey<Long> HTTP_REQUEST_CONTENT_LENGTH_UNCOMPRESSED =
+      longKey("http.request_content_length_uncompressed");
+
+  /**
+   * @deprecated This item has been removed as of 1.13.0 of the semantic conventions. Please use {@link SemanticAttributes#HTTP_RESPONSE_CONTENT_LENGTH} instead.
+   */
+  @Deprecated
+  public static final AttributeKey<Long> HTTP_RESPONSE_CONTENT_LENGTH_UNCOMPRESSED =
+        longKey("http.response_content_length_uncompressed");
+
+  /**
+   * @deprecated This item has been removed as of 1.13.0 of the semantic conventions. Please use
+   *     {@link SemanticAttributes#NET_HOST_NAME} instead.
+   */
+  @Deprecated
+  public static final AttributeKey<String> HTTP_SERVER_NAME = stringKey("http.server_name");
+
+  /**
+   * @deprecated This item has been removed as of 1.13.0 of the semantic conventions. Please use
+   *     {@link SemanticAttributes#NET_HOST_NAME} instead.
+   */
+  @Deprecated
+  public static final AttributeKey<String> HTTP_HOST = stringKey("http.host");
+
+  /**
+   * @deprecated This item has been removed as of 1.13.0 of the semantic conventions. Please use {@link SemanticAttributes#NET_SOCK_PEER_ADDR} instead.
+   */
+  @Deprecated
+  public static final AttributeKey<String> NET_PEER_IP = stringKey("net.peer.ip");
+
+  /**
+   * @deprecated This item has been removed as of 1.13.0 of the semantic conventions. Please use {@link SemanticAttributes#NET_SOCK_HOST_ADDR} instead.
+   */
+  @Deprecated
+  public static final AttributeKey<String> NET_HOST_IP = stringKey("net.host.ip");
+
+  /**
+   * The ordinal number of request re-sending attempt.
+   * @deprecated This item has been removed as of 1.15.0 of the semantic conventions. Use {@link SemanticAttributes#HTTP_RESEND_COUNT} instead.
+   */
+  @Deprecated
+  public static final AttributeKey<Long> HTTP_RETRY_COUNT = longKey("http.retry_count");
+
+
+ /**
+  * A string identifying the messaging system.
+  * @deprecated This item has been removed as of 1.17.0 of the semantic conventions. Use {@link SemanticAttributes#MESSAGING_DESTINATION_NAME} instead.
+  */
+  @Deprecated
+  public static final AttributeKey<String> MESSAGING_DESTINATION =
+      stringKey("messaging.destination");
+
+ /**
+  * A boolean that is true if the message destination is temporary.
+  * @deprecated This item has been removed as of 1.17.0 of the semantic conventions. Use {@link SemanticAttributes#MESSAGING_DESTINATION_TEMPORARY} instead.
+  */
+  @Deprecated
+  public static final AttributeKey<Boolean> MESSAGING_TEMP_DESTINATION =
+      booleanKey("messaging.temp_destination");
+
+ /**
+  * The name of the transport protocol.
+  * @deprecated This item has been removed as of 1.17.0 of the semantic conventions. There is no replacement.
+  */
+  @Deprecated
+  public static final AttributeKey<String> MESSAGING_PROTOCOL = stringKey("messaging.protocol");
+
+  /**
+  * The version of the transport protocol.
+  * @deprecated This item has been removed as of 1.17.0 of the semantic conventions. There is no replacement.
+  */
+  @Deprecated
+  public static final AttributeKey<String> MESSAGING_PROTOCOL_VERSION =
+      stringKey("messaging.protocol_version");
+
+  /**
+  * Connection string.
+  * @deprecated This item has been removed as of 1.17.0 of the semantic conventions. There is no replacement.
+  */
+  @Deprecated
+  public static final AttributeKey<String> MESSAGING_URL = stringKey("messaging.url");
+
+   /**
+    * The <a href="#conversations">conversation ID</a> identifying the conversation to which the
+    * message belongs, represented as a string. Sometimes called &quot;Correlation ID&quot;.
+    * @deprecated This item has been removed as of 1.17.0 of the semantic conventions. Use {@link SemanticAttributes#MESSAGING_MESSAGE_CONVERSATION_ID} instead.
+    */
+   @Deprecated
+   public static final AttributeKey<String> MESSAGING_CONVERSATION_ID =
+      stringKey("messaging.conversation_id");
+
+  /**
+   * RabbitMQ message routing key.
+   * @deprecated This item has been removed as of 1.17.0 of the semantic conventions. Use {@link SemanticAttributes#MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY} instead.
+   */
+  @Deprecated
+  public static final AttributeKey<String> MESSAGING_RABBITMQ_ROUTING_KEY =
+      stringKey("messaging.rabbitmq.routing_key");
+
+  /**
+   * Partition the message is received from.
+   * @deprecated This item has been removed as of 1.17.0 of the semantic conventions. Use {@link SemanticAttributes#MESSAGING_KAFKA_SOURCE_PARTITION} instead.
+   */
+   @Deprecated
+  public static final AttributeKey<Long> MESSAGING_KAFKA_PARTITION =
+      longKey("messaging.kafka.partition");
+
+  /**
+   * A boolean that is true if the message is a tombstone.
+   * @deprecated This item has been removed as of 1.17.0 of the semantic conventions. Use {@link SemanticAttributes#MESSAGING_KAFKA_MESSAGE_TOMBSTONE} instead.
+   */
+  @Deprecated
+  public static final AttributeKey<Boolean> MESSAGING_KAFKA_TOMBSTONE =
+      booleanKey("messaging.kafka.tombstone");
+
+  /**
+   * The timestamp in milliseconds that the delay message is expected to be delivered to consumer.
+   * @deprecated This item has been removed as of 1.17.0 of the semantic conventions. Use {@link SemanticAttributes#MESSAGING_ROCKETMQ_MESSAGE_DELIVERY_TIMESTAMP} instead.
+   */
+  @Deprecated
+  public static final AttributeKey<Long> MESSAGING_ROCKETMQ_DELIVERY_TIMESTAMP =
+      longKey("messaging.rocketmq.delivery_timestamp");
+
+
+  /**
+   * The delay time level for delay message, which determines the message delay time.
+   * @deprecated This item has been removed as of 1.17.0 of the semantic conventions. Use {@link SemanticAttributes#MESSAGING_ROCKETMQ_MESSAGE_DELAY_TIME_LEVEL} instead.
+   */
+  @Deprecated
+  public static final AttributeKey<Long> MESSAGING_ROCKETMQ_DELAY_TIME_LEVEL =
+      longKey("messaging.rocketmq.delay_time_level");
+
+  {% endif %}
+
+  {%- if class == "ResourceAttributes" %}
+
+  /**
+   * Red Hat OpenShift on Google Cloud.
+   * @deprecated This item has been removed as of 1.18.0 of the semantic conventions. Use {@link ResourceAttributes#GCP_OPENSHIFT} instead.
+   */
+  @Deprecated
+  public static final String GCP_OPENSHIFT = "gcp_openshift";
+
+  {% endif %}
+
+  private {{class}}() {}
+}
